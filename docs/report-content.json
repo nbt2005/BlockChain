@@ -1,0 +1,177 @@
+{
+  "title": "NFT Academic Certificate Issuance and Verification",
+  "sections": [
+    "1  Introduction",
+    "2  System design",
+    "3  Contract diagrams",
+    "4  Security analysis",
+    "5  Testing and execution evidence",
+    "6  Gas analysis",
+    "7  Conclusion",
+    "8  References"
+  ],
+  "intro": "Academic certificates are often checked manually, while a copied PDF does not reveal whether its contents were changed or the issuer later revoked it. This project records a certificate's recipient, issuer, URI and content hash in an ERC-721 contract. An authorized institution issues the record; employers and students verify it through public RPC reads. Revocation preserves the NFT and its audit history while making verification invalid.",
+  "scope": "The implemented scope covers issuer administration, non-transferable issuance, token/wallet lookup, exact-byte JSON verification, revocation, events, automated tests and receipt-based gas comparison. It deliberately excludes backend accounts, IPFS, marketplace, proxies and cloud hosting. A matching hash establishes unchanged content, not the truth of an academic claim.",
+  "tech": "Toolchain: Solidity 0.8.24; OpenZeppelin 5.0.2; Hardhat 2.22.17; ethers 6.13.4; Node 20.19.0; Vite 5.4.21; Ganache CLI 7.9.2. MetaMask is the user signing interface. Historical gas measurements target Shanghai; deploy:gui targets Paris for older Ganache GUI versions.",
+  "team": "Team 4: Nguyen Ba Thien (29211164940) explains the contract, security, tests and gas; Nguyen Dang Thinh (29210258195) demonstrates the web, metadata, wallet workflow and verification. Both members reproduce the README setup and the complete issue-to-revocation flow.",
+  "overviewCaption": "Figure 1. Actual English web interface captured during the browser integration run. The displayed wallet is separate from the deployed contract address.",
+  "designIntro": "The browser uses a read-only JsonRpcProvider for public lookup and a MetaMask signer for writes. Vite serves the exact metadata bytes; Ganache stores contract state. Private keys never enter frontend configuration. Deployment exports ABI, address, chain ID and RPC only.",
+  "roleHeaders": [
+    "Actor",
+    "Authority and meaning"
+  ],
+  "roles": [
+    [
+      "Admin",
+      "DEFAULT_ADMIN_ROLE; grants/removes issuers and revokes any record. Minting still requires ISSUER_ROLE."
+    ],
+    [
+      "Issuer",
+      "ISSUER_ROLE; issues certificates and revokes only its own records while the role remains active."
+    ],
+    [
+      "Student",
+      "Recipient and NFT owner; cannot transfer the certificate or revoke it merely through ownership."
+    ],
+    [
+      "Outsider / public",
+      "No privileged role; reads and verifies without a wallet. Student/outsider are demo labels, not stored roles."
+    ]
+  ],
+  "storageTitle": "Record structure and metadata boundary",
+  "storage": "Certificate stores student and issuer (address), metadataHash (bytes32), issuedAt (uint64), and revoked (bool). Mapping tokenId → Certificate holds records; separate mappings hold immutable URI strings and address → tokenId[] lookup lists. issuedAt records block time; JSON date is a business date. Lists include revoked records and are not paginated.",
+  "apiHeaders": [
+    "Function / event",
+    "Behavior"
+  ],
+  "apis": [
+    [
+      "issueCertificate(student, uri, hash)",
+      "Issuer only; rejects zero recipient/hash and empty URI. Writes record/index before _safeMint."
+    ],
+    [
+      "revokeCertificate(tokenId)",
+      "Admin or original active issuer; rejects missing or already-revoked records; never burns."
+    ],
+    [
+      "getCertificate / tokenURI / student lookup",
+      "Public reads; record/URI reads reject missing tokens; an unknown wallet returns an empty list."
+    ],
+    [
+      "verifyCertificate(tokenId, hash)",
+      "Returns valid, revoked, hashMatches. A missing token returns false/false/false."
+    ],
+    [
+      "CertificateIssued / CertificateRevoked",
+      "Indexed IDs/actors support receipts and audit trails; Transfer and role events are inherited."
+    ]
+  ],
+  "metadata": "Metadata string fields are serialized in name, course, grade, date order. The frontend fetches the URI, checks form equivalence, and hashes the exact UTF-8 text using keccak256. Newline, whitespace, BOM and key-order changes matter. The token ID is read from CertificateIssued in the receipt, not guessed from the counter.",
+  "diagramIntro": "The inheritance diagram separates NFT ownership from role administration. The lifecycle captures persistent certificate status; the sequence distinguishes signed issuance from public verification. Editable Mermaid versions are available in docs/DIAGRAMS.md.",
+  "classCaption": "Figure 2. Inheritance and storage responsibilities. AccessControl maintains role membership in contract state; granting a role does not edit source files or create a new Ganache account.",
+  "stateCaption": "Figure 3. On-chain lifecycle: not issued → active → revoked. Hash mismatch is a verification outcome, not a separate on-chain state. There is no transfer, metadata update, burn or un-revoke API.",
+  "sequenceCaption": "Figure 4. Issuance and verification sequence. Signed writes produce mined transactions; eth_call reads and local hashing do not. Revocation changes validity without changing ownership.",
+  "securityIntro": "The contract enforces permissions even when a caller bypasses the web. Its trust boundary is the signer and issuer authority, not disabled HTML buttons. The following controls were reviewed against code and tests; this is not a formal security audit.",
+  "securityHeaders": [
+    "Threat",
+    "Implemented control and remaining risk"
+  ],
+  "securityRows": [
+    [
+      "Unauthorized writes",
+      "onlyRole protects issuance; admin/original-active-issuer logic protects revocation. A compromised authorized wallet remains dangerous."
+    ],
+    [
+      "Sale or ownership bypass",
+      "_update blocks nonzero-to-nonzero ownership changes, including approved operators and both safeTransferFrom overloads."
+    ],
+    [
+      "Metadata tampering / downtime",
+      "Immutable hash detects changed bytes. Invalid/unavailable JSON stays unverified; URI availability and issuer honesty are external risks."
+    ],
+    [
+      "Receiver callback / rollback",
+      "Record and student index are written before _safeMint; receiver rejection rolls back all writes. No payment or upgrade entry point is exposed."
+    ],
+    [
+      "Revocation history",
+      "Revoked is monotonic; ownership, URI and student index persist. Removing issuer role disables that issuer's revocation path."
+    ],
+    [
+      "Browser / scale / governance",
+      "Results use textContent; chain checks gate writes. No pagination, multisig/timelock or production key governance is implemented."
+    ]
+  ],
+  "validCaption": "Figure 5. Valid verification excerpt: existing token, unchanged JSON and no revocation. Full record: docs/evidence/certificate-valid.png.",
+  "tamperedCaption": "Figure 6. The same token checked against JSON with grade A changed to B. Hash mismatch is detected; the on-chain record is unchanged.",
+  "testIntro": "The fresh run uses independent contract deployments on Hardhat and Ganache. Revert selectors are checked through eth_call for consistent RPC error decoding; three separate submitted failures prove receipt status 0 and unchanged state. No hardhat_reset, setBalance or Hardhat-only fixture is used on Ganache.",
+  "testHeaders": [
+    "Test group",
+    "Cases",
+    "Result"
+  ],
+  "testGroups": [
+    [
+      "Functional records, reads, events and revocation",
+      "9",
+      "Pass"
+    ],
+    [
+      "Role and issuer authorization",
+      "6",
+      "Pass"
+    ],
+    [
+      "Missing records, repeat revoke and invalid input",
+      "5",
+      "Pass"
+    ],
+    [
+      "Transfers, approvals and operators",
+      "5",
+      "Pass"
+    ],
+    [
+      "Rejecting receiver rollback",
+      "1",
+      "Pass"
+    ],
+    [
+      "Mined failures and state preservation",
+      "3",
+      "Pass"
+    ]
+  ],
+  "testLogCaption": "Figure 7. Rendered excerpt of the actual saved Ganache test log (not a screenshot of a terminal). Full logs: docs/test-results.txt and docs/test-hardhat.txt.",
+  "revokedCaption": "Figure 8. After a mined revocation, the UI reports invalid while the NFT owner remains the student. The evidence manifest retains transaction hashes and ownership.",
+  "manual": "Browser coverage includes granting, minting, wallet lookup, tampered/invalid/missing metadata, revocation, wrong network, rejected signing and mobile width. The EIP-1193 wallet is simulated; real MetaMask extension key import/signing and two presentation rehearsals remain manual. Screenshots use a separate test contract and do not replace the demo deployment.",
+  "gasMethod": "Historical receipt evidence was measured on Ganache 7.9.2, Solidity 0.8.24, Shanghai, chain 1337: clean compile with optimizer disabled, then enabled at runs=200; deploy a fresh contract for each run; use identical URI/JSON and operation order. Compare gasUsed, not fees, because gasPrice varies across blocks.",
+  "gasHeaders": [
+    "Operation",
+    "Disabled",
+    "Enabled",
+    "Reduction"
+  ],
+  "gasCaption": "Figure 9. Deployment gas before/after compiler optimization, generated directly from saved receipts. All six operations are listed above.",
+  "gasAnalysis": "Reduction = (disabled − enabled) / disabled × 100. Deployment improves most because optimizer reduces runtime bytecode; execution savings are smaller and operation-specific. The subsequent mint is cheaper partly because student/counter slots are already nonzero. This is a measured local comparison, not a universal fee guarantee. eth_call does not charge a transaction fee but still consumes node computation.",
+  "gasBoundary": "CSV/JSON retain compiler, optimizer, txHash, block, gasPrice and feeWei. These Shanghai numbers are not presented as Paris GUI measurements. Reproduce with npm run verify on the documented CLI; deploy:gui is a compatibility mode for older GUI instances.",
+  "conclusion": "The prototype implements authorized issuance, immutable metadata commitments, public integrity checks and auditable revocation. The tested security boundary holds for the covered cases. Production work should add durable metadata storage, pagination/indexing, multisig administration, privacy controls and an independent audit. README and DEMO document a reproducible two-person handover.",
+  "references": [
+    [
+      "[1] OpenZeppelin ERC721 and AccessControl (implementation pinned to 5.0.2)",
+      "https://docs.openzeppelin.com/contracts/5.x/api/token/erc721"
+    ],
+    [
+      "[2] OpenZeppelin role-based access control",
+      "https://docs.openzeppelin.com/contracts/5.x/access-control"
+    ],
+    [
+      "[3] Hardhat 2 compiler and network configuration",
+      "https://v2.hardhat.org/hardhat-runner/docs/config"
+    ],
+    [
+      "[4] Ganache CLI: chain, database and RPC configuration",
+      "https://archive.trufflesuite.com/docs/ganache/reference/cli-options/"
+    ]
+  ]
+}

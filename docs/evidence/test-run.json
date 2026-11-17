@@ -1,0 +1,6 @@
+{
+  "date": "2026-11-17T00:25:34.054Z",
+  "evmVersion": "shanghai",
+  "rpc": "http://127.0.0.1:7545",
+  "suite": "Hardhat and Ganache; 29 passing each"
+}
