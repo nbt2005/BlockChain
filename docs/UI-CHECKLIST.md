@@ -13,3 +13,7 @@ Automated coverage is in e2e/workflow.spec.js and docs/ui-results.txt. It simula
 - [ ] Another issuer cannot revoke the original issuer's certificate.
 - [ ] Show writes on the same chain used by the app; explain why reads are not transactions.
 - [ ] Rehearse the full two-person demonstration twice in under ten minutes.
+
+- [ ] Issue directly without downloading/copying JSON; the file is created locally and Metadata URI fills automatically.
+- [ ] Change a metadata field: the old URI clears, a new file is saved, and previous certificate files remain unchanged.
+- [ ] Restart Vite and verify a previously issued generated URI still works.

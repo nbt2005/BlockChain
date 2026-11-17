@@ -6,7 +6,7 @@ Thien explains the contract, permissions, tests, and gas. Thinh operates the web
 | --- | --- |
 | 0–1 | Introduce the architecture and show the selected Ganache RPC and chain ID. Use GUI mode if transactions must appear in the desktop workspace. |
 | 1–2 | Connect admin and grant the issuer role using docs/demo-accounts.json. Show the confirmed transaction. |
-| 2–4 | Switch to issuer, enter the student address, use the sample JSON/default URI, and issue. Obtain the token ID from the receipt. |
+| 2–4 | Switch to issuer, enter the student address, enter the metadata and issue directly. The app saves JSON and fills its URI automatically; downloading a copy is optional. Obtain the token ID from the receipt. |
 | 4–5 | Look up the token: check recipient, issuer, and matching hash. Explain that reading creates no transaction. |
 | 5–6 | Look up the student wallet and show its certificate list. |
 | 6–7 | Select frontend/public/metadata/cert-tampered.json and look up again. Show the mismatch, then clear the file selection. |

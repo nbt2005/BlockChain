@@ -1,6 +1,8 @@
 
-Running 1 test using 1 worker
+Running 3 tests using 1 worker
 
-  ok 1 e2e\workflow.spec.js:5:1 › public lookup, role management, mint, tamper, revoke and wallet changes (22.1s)
+  ok 1 e2e\metadata.spec.js:8:1 › saves exact JSON, fills a content-addressed path, reuses identical bytes and never overwrites modified files (135ms)
+  ok 2 e2e\metadata.spec.js:24:1 › rejects foreign origins, arbitrary filenames, invalid dates and oversized bodies (53ms)
+  ok 3 e2e\workflow.spec.js:5:1 › public lookup, role management, mint, tamper, revoke and wallet changes (26.1s)
 
-  1 passed (26.3s)
+  3 passed (31.1s)

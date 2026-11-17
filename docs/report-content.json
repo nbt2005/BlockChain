@@ -15,7 +15,7 @@
   "tech": "Toolchain: Solidity 0.8.24; OpenZeppelin 5.0.2; Hardhat 2.22.17; ethers 6.13.4; Node 20.19.0; Vite 5.4.21; Ganache CLI 7.9.2. MetaMask is the user signing interface. Historical gas measurements target Shanghai; deploy:gui targets Paris for older Ganache GUI versions.",
   "team": "Team 4: Nguyen Ba Thien (29211164940) explains the contract, security, tests and gas; Nguyen Dang Thinh (29210258195) demonstrates the web, metadata, wallet workflow and verification. Both members reproduce the README setup and the complete issue-to-revocation flow.",
   "overviewCaption": "Figure 1. Actual English web interface captured during the browser integration run. The displayed wallet is separate from the deployed contract address.",
-  "designIntro": "The browser uses a read-only JsonRpcProvider for public lookup and a MetaMask signer for writes. Vite serves the exact metadata bytes; Ganache stores contract state. Private keys never enter frontend configuration. Deployment exports ABI, address, chain ID and RPC only.",
+  "designIntro": "The browser uses JsonRpcProvider for public reads and MetaMask for writes. A local-only Vite helper saves validated JSON under public/metadata/generated and fills the URI automatically; no manual copy or external storage service is required. Ganache stores contract state. Frontend configuration contains ABI, address, chain ID and RPC, never private keys.",
   "roleHeaders": [
     "Actor",
     "Authority and meaning"
@@ -66,7 +66,7 @@
       "Indexed IDs/actors support receipts and audit trails; Transfer and role events are inherited."
     ]
   ],
-  "metadata": "Metadata string fields are serialized in name, course, grade, date order. The frontend fetches the URI, checks form equivalence, and hashes the exact UTF-8 text using keccak256. Newline, whitespace, BOM and key-order changes matter. The token ID is read from CertificateIssued in the receipt, not guessed from the counter.",
+  "metadata": "The form serializes name, course, grade, date. Before issuance, POST /api/metadata saves JSON to a keccak256-named file without overwriting existing contents. The browser fills its URI and hash automatically, fetches the exact UTF-8 bytes, and checks them before signing. Different data creates a new path; unchanged data reuses the file. The download button saves and downloads an optional copy. Token IDs come from receipt events.",
   "diagramIntro": "The inheritance diagram separates NFT ownership from role administration. The lifecycle captures persistent certificate status; the sequence distinguishes signed issuance from public verification. Editable Mermaid versions are available in docs/DIAGRAMS.md.",
   "classCaption": "Figure 2. Inheritance and storage responsibilities. AccessControl maintains role membership in contract state; granting a role does not edit source files or create a new Ganache account.",
   "stateCaption": "Figure 3. On-chain lifecycle: not issued → active → revoked. Hash mismatch is a verification outcome, not a separate on-chain state. There is no transfer, metadata update, burn or un-revoke API.",
@@ -99,7 +99,7 @@
     ],
     [
       "Browser / scale / governance",
-      "Results use textContent; chain checks gate writes. No pagination, multisig/timelock or production key governance is implemented."
+      "Local saves require same-origin loopback, a 16 KB cap and server-chosen paths; existing files are not overwritten. UI uses textContent. No production authentication, pagination or multisig."
     ]
   ],
   "validCaption": "Figure 5. Valid verification excerpt: existing token, unchanged JSON and no revocation. Full record: docs/evidence/certificate-valid.png.",
@@ -144,7 +144,7 @@
   ],
   "testLogCaption": "Figure 7. Rendered excerpt of the actual saved Ganache test log (not a screenshot of a terminal). Full logs: docs/test-results.txt and docs/test-hardhat.txt.",
   "revokedCaption": "Figure 8. After a mined revocation, the UI reports invalid while the NFT owner remains the student. The evidence manifest retains transaction hashes and ownership.",
-  "manual": "Browser coverage includes granting, minting, wallet lookup, tampered/invalid/missing metadata, revocation, wrong network, rejected signing and mobile width. The EIP-1193 wallet is simulated; real MetaMask extension key import/signing and two presentation rehearsals remain manual. Screenshots use a separate test contract and do not replace the demo deployment.",
+  "manual": "Browser coverage includes automatic JSON saving, direct issuance without copying files, correct URI/hash, tampering, revocation and wallet errors. Local API tests cover idempotence, no overwrite, origin restrictions, invalid fields/dates and payload limits. The wallet is simulated EIP-1193; real MetaMask import/signing and rehearsals remain manual. Generated files are local data and must be retained.",
   "gasMethod": "Historical receipt evidence was measured on Ganache 7.9.2, Solidity 0.8.24, Shanghai, chain 1337: clean compile with optimizer disabled, then enabled at runs=200; deploy a fresh contract for each run; use identical URI/JSON and operation order. Compare gasUsed, not fees, because gasPrice varies across blocks.",
   "gasHeaders": [
     "Operation",

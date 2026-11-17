@@ -1,46 +1,53 @@
 {
-  "capturedAt": "2026-11-17T00:26:17.119Z",
+  "capturedAt": "2026-11-17T01:40:01.772Z",
   "rpcUrl": "http://127.0.0.1:7545",
   "chainId": 1337,
-  "client": "Ganache/v7.9.2/EthereumJS TestRPC/v7.9.2/ethereum-js",
-  "evmVersion": "shanghai",
-  "contract": "0x9e90054F4B6730cffAf1E6f6ea10e1bF9dD26dbb",
+  "client": "Ganache/v7.7.3/EthereumJS TestRPC/v7.7.3/ethereum-js",
+  "evmVersion": "paris",
+  "contract": "0xA0D42F79F1b2B3d76F680c63E851b739CD1aA5B8",
   "accounts": [
-    "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-    "0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0",
-    "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
-    "0xE11BA2b4D45Eaed5996Cd0823791E0C93114882d"
+    "0x9B419114900010167c0e908Cd7B5445110d79057",
+    "0xd173247204EdaCc8a9fd713Fe9629356bC57dEd5",
+    "0x91D9172fa600398fF90072591B39B81580a424eD",
+    "0x71bc2b5bE48C6D18B08EA81bd3B4cF44ec4707a0"
   ],
   "tokenId": 1,
-  "ownerAfterRevocation": "0x22d491Bde2303f2f43325b2108D26f1eAbA1e32b",
+  "ownerAfterRevocation": "0x91D9172fa600398fF90072591B39B81580a424eD",
   "receipts": [
     {
       "event": "RoleGranted",
-      "hash": "0xd415f5259227cb7895eb79ec885b1843ca2965a98c807a95ec2c79ab3e103c64",
-      "block": 89,
+      "hash": "0x4a71a163b05c8fc42ef88daa807b26d5ed2e291b6461585831ec4b84241259d7",
+      "block": 6,
       "status": 1,
-      "gasUsed": "1555029"
+      "gasUsed": "1585587"
     },
     {
       "event": "RoleGranted",
-      "hash": "0xca75967949aec1b666d245300cc2c810546c85a2326f3d1689456a52fcd729bf",
-      "block": 90,
+      "hash": "0x32f16d08c6ebea1e6d04a02a4a8b421f22724484c4953d8d49d784b19b7a64d3",
+      "block": 7,
       "status": 1,
-      "gasUsed": "51514"
+      "gasUsed": "51521"
     },
     {
       "event": "CertificateIssued",
-      "hash": "0xe9090548ccc89baf7f166029b81129e002aaa91c8378c7adf1b7a3e2b6f1bdd2",
-      "block": 91,
+      "hash": "0xdbb0d667214b2bbb6fd78462c52e0bde2b8ff0080657e6aa954e37f2147f4ad5",
+      "block": 8,
       "status": 1,
-      "gasUsed": "301761"
+      "gasUsed": "347728"
+    },
+    {
+      "event": "CertificateIssued",
+      "hash": "0x46a570ad704e49c7a43c15adb64db62df84a369ea184a8241789a3b2fff46c57",
+      "block": 10,
+      "status": 1,
+      "gasUsed": "296428"
     },
     {
       "event": "CertificateRevoked",
-      "hash": "0xc112d16a5e17c80c9f1eaeb5064c4c40f5356b340d8ffd2123090fa9b7622feb",
-      "block": 92,
+      "hash": "0xe4116b5912b40c40a01d4ff31c076ffb8e42f57763f0033039796a5e9ade5bbb",
+      "block": 9,
       "status": 1,
-      "gasUsed": "37302"
+      "gasUsed": "37309"
     }
   ],
   "wallet": "Simulated EIP-1193 provider; real local Ganache transactions"

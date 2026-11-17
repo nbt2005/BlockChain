@@ -52,11 +52,11 @@ Hash mismatch and unavailable metadata are verification outcomes; they do not ch
 ```mermaid
 sequenceDiagram
     actor User as Issuer or verifier
-    participant Web as Web and static JSON
+    participant Web as Web and local JSON storage
     participant Wallet as MetaMask
     participant Chain as Contract and RPC
-    User->>Web: Enter student, metadata and URI
-    Web->>Web: Fetch exact UTF-8 and compute keccak256
+    User->>Web: Enter student and metadata
+    Web->>Web: Save local JSON; fill URI; fetch exact bytes and hash
     Web->>Wallet: Request issueCertificate signature
     Wallet->>Chain: Submit signed transaction
     Chain->>Chain: Check role and inputs; write record/index; safeMint

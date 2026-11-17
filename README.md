@@ -1,6 +1,6 @@
 # NFT Academic Certificate Issuance and Verification
 
-Project 3, Team 4: **Nguyen Ba Thien (29211164940)** and **Nguyen Dang Thinh (29210258195)**. A local ERC-721 application using OpenZeppelin AccessControl, Hardhat 2, Ganache, Vite, and ethers 6. Certificates are non-transferable; metadata is served as static JSON without a backend.
+Project 3, Team 4: **Nguyen Ba Thien (29211164940)** and **Nguyen Dang Thinh (29210258195)**. A local ERC-721 application using OpenZeppelin AccessControl, Hardhat 2, Ganache, Vite, and ethers 6. Certificates are non-transferable; metadata is saved and served by a small local Vite helper, with no external storage service.
 
 Evidence from the full verification: **29/29 Hardhat tests, 29/29 Ganache tests**, a passing Edge integration scenario, and a successful frontend build. See [Ganache tests](docs/test-results.txt), [browser tests](docs/ui-results.txt), [measured gas](docs/GAS.md), [six-page report](docs/report.pdf), and [demo](docs/DEMO.md). Automated wallet tests simulate EIP-1193 and submit real Ganache transactions. The [real MetaMask checks](docs/UI-CHECKLIST.md) remain manual.
 
@@ -74,8 +74,8 @@ npm.cmd run transactions
 1. Add the selected Ganache RPC, chain ID, and ETH currency. Chain ID differs from network ID. Connect supports adding/switching to the deployed network.
 2. Import four demo wallets: admin, issuer, student, and outsider. Match `docs/demo-accounts.json`.
 3. Connect the admin. Enter the issuer address under **Issuer permissions**, click **Grant role**, and confirm.
-4. Switch to the issuer. Enter the student address. Keep the default metadata and URI for the sample, or click **Create and download JSON** for new data.
-5. Copy downloaded JSON into `frontend/public/metadata/` and enter its URI, such as `http://localhost:5173/metadata/certificate.json`. A file in Downloads is not automatically served by Vite. URI contents must match the form.
+4. Switch to the issuer. Enter the student address, name, course, grade, and issue date.
+5. Click **Issue certificate on blockchain** directly. The local server saves JSON into `frontend/public/metadata/generated/`, and the web fills Metadata URI and hash automatically. **Save JSON and download a copy** optionally performs the same save and downloads a backup; copying from Downloads is unnecessary.
 6. Issue, wait for the receipt, and obtain the token ID from its event. Look up the token or student wallet without connecting MetaMask.
 7. Select `frontend/public/metadata/cert-tampered.json` to show a hash mismatch. Clear the file selection to verify the URI again.
 8. Revoke as the original issuer with an active role, or as admin. Verification becomes invalid while the NFT remains owned by the student. Admin can remove the issuer role.
@@ -119,7 +119,7 @@ Metadata strings are ordered `name, course, grade, date`; date uses `YYYY-MM-DD`
 
 ## Limits and troubleshooting
 
-This is a local academic demo with the planned pinned toolchain. Hashes prove unchanged data, not truthful academic claims. Compromised admin/issuer wallets can misuse roles. Local metadata depends on the server and CORS. Student lists are not paginated. There is no IPFS, backend, login, marketplace, proxy, or cloud deployment.
+This is a local academic demo with the planned pinned toolchain. Hashes prove unchanged data, not truthful academic claims. Compromised admin/issuer wallets can misuse roles. Local metadata depends on the server and CORS. Student lists are not paginated. There is no IPFS, account backend, login, marketplace, proxy, or cloud deployment. The local metadata helper runs only through Vite dev mode.
 
 | Symptom | Check |
 | --- | --- |
@@ -127,7 +127,7 @@ This is a local academic demo with the planned pinned toolchain. Hashes prove un
 | Contract missing | Deploy on that RPC and reload |
 | No transactions in GUI | Compare RPC/workspace; CLI and GUI histories are separate |
 | Wrong network | Use chain ID, not network ID |
-| Metadata unavailable | Copy JSON into public/metadata; open the URI; check CORS |
+| Metadata unavailable | Keep npm run dev running; preserve generated files; open the automatically generated URI |
 | Hash mismatch | Compare exact UTF-8 bytes; avoid reformatting |
 | Mint/revoke rejected | Check wallet, role, original issuer, token existence and status |
 | Stale nonce after reset | Redeploy and clear activity/nonce data for demo wallets if needed |
@@ -142,3 +142,11 @@ This is a local academic demo with the planned pinned toolchain. Hashes prove un
 ## Report and evidence
 
 The six-page report follows eight sections: introduction, system design, contract diagrams, security, testing, gas analysis, conclusion, and references. It includes nine numbered figures. Editable diagrams are in [docs/DIAGRAMS.md](docs/DIAGRAMS.md); original UI captures and receipt provenance are under [docs/evidence](docs/evidence/README.md). Regenerate the English PDF with `npm.cmd run report`. Vietnamese reports remain separate ignored `.vi.pdf` companions.
+
+## Automatic local metadata storage
+
+`frontend/vite.config.js` installs a local-only Vite middleware. `POST /api/metadata` validates four string fields, canonicalizes JSON, computes keccak256, and exclusively creates `frontend/public/metadata/generated/0x<hash>.json`. The server returns its path; the browser fills an absolute URI based on the current origin, fetches those exact bytes, and verifies them before minting. Editing a metadata field clears the previous URI/hash. Identical data reuses an unchanged file; different data gets another path. Existing altered files are rejected rather than overwritten.
+
+The write endpoint accepts same-origin JSON requests on loopback only, limits bodies to 16 KB, and never accepts a filename or path. It is a convenience for a single-user local demo, not an authenticated production upload service. No additional dependencies or external storage subscriptions are needed.
+
+Keep and back up the generated folder: files are local data ignored by Git, and issued NFTs continue to reference them. Do not delete or edit files already used by certificates. A canceled wallet request can leave a saved file without a minted token; retry safely reuses it. Restarting Vite retains saved files. Static builds and Vite preview do not provide the write API; use npm run dev to issue certificates locally.

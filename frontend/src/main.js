@@ -5,6 +5,7 @@ const $=id=>document.getElementById(id);
 const rpc=new JsonRpcProvider(deployment.rpcUrl, deployment.chainId,{staticNetwork:true});
 const read=new Contract(deployment.address||'0x0000000000000000000000000000000000000000',deployment.abi,rpc);
 let signer, account, correctNetwork=false, admin=false, issuer=false, ready=false, busy=false, epoch=0;
+let metadataBusy=false,preparedMetadata=null;
 const role=keccak256(toUtf8Bytes('ISSUER_ROLE'));
 const chainHex=`0x${deployment.chainId.toString(16)}`;
 function notice(message,error=false){$('notice').textContent=message;$('notice').className=error?'error':'';}
@@ -17,12 +18,34 @@ function errorMessage(e){
   for(const data of [e.data,e.info?.error?.data?.result,e.info?.error?.data])if(typeof data==='string'){try{name=read.interface.parseError(data)?.name||name;}catch{}}
   return messages[name]||e.reason||name||e.shortMessage||e.message||'Unable to complete the action.';
 }
-function buttons(){document.querySelectorAll('[data-write]').forEach(b=>{const kind=b.dataset.write;b.disabled=busy||!ready||!correctNetwork||!signer||!(kind==='admin'?admin:kind==='issuer'?issuer:admin||issuer);});$('connect').disabled=busy;}
+function buttons(){document.querySelectorAll('[data-write]').forEach(b=>{const kind=b.dataset.write;b.disabled=busy||metadataBusy||!ready||!correctNetwork||!signer||!(kind==='admin'?admin:kind==='issuer'?issuer:admin||issuer);});$('connect').disabled=busy||metadataBusy;$('download').disabled=busy||metadataBusy;}
 async function guard(fn){try{await fn();}catch(e){notice(errorMessage(e),true);}}
 function positive(id){const raw=$(id).value.trim();if(!/^[1-9]\d*$/.test(raw))throw Error('Token ID must be a positive integer.');return BigInt(raw);}
 function metadata(){const obj={name:$('name').value.trim(),course:$('course').value.trim(),grade:$('grade').value.trim(),date:$('date').value};if(Object.values(obj).some(x=>!x))throw Error('Complete all certificate fields.');return JSON.stringify(obj);}
 function parseMetadata(text){const obj=JSON.parse(text);if(!obj||Array.isArray(obj)||['name','course','grade','date'].some(k=>typeof obj[k]!=='string'||!obj[k].trim())||!/^\d{4}-\d{2}-\d{2}$/.test(obj.date))throw Error('Metadata JSON must contain valid name, course, grade, and date fields.');return obj;}
 async function fetchText(uri){const url=new URL(uri);if(!['http:','https:'].includes(url.protocol))throw Error('The URI must use HTTP or HTTPS.');const response=await fetch(url,{cache:'no-store',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Error(`Unable to load metadata (HTTP ${response.status}).`);return response.text();}
+async function metadataTask(task){
+  if(metadataBusy||busy)throw Error('Wait for the current request to finish.');
+  metadataBusy=true;buttons();
+  const inputs=[...$('issueForm').querySelectorAll('input:not([readonly])')];
+  inputs.forEach(input=>input.disabled=true);
+  try{return await task();}finally{inputs.forEach(input=>input.disabled=false);metadataBusy=false;buttons();}
+}
+async function saveMetadata(text){
+  const hash=keccak256(toUtf8Bytes(text));
+  let saved=preparedMetadata?.text===text?preparedMetadata:null;
+  if(!saved){
+    notice('Saving metadata in the project folder…');
+    const response=await fetch('/api/metadata',{method:'POST',headers:{'Content-Type':'application/json'},body:text,signal:AbortSignal.timeout(10000)});
+    if(!response.headers.get('content-type')?.includes('application/json'))throw Error('Automatic saving requires npm run dev. A static build cannot write files to the project.');
+    const result=await response.json();if(!response.ok)throw Error(result.error||'Unable to save metadata.');
+    if(result.hash!==hash||result.path!==`/metadata/generated/${hash}.json`)throw Error('The saved metadata response does not match the form.');
+    saved={text,hash,uri:new URL(result.path,window.location.origin).href};
+  }
+  if(await fetchText(saved.uri)!==text)throw Error('Saved metadata bytes do not match the form. Issuance was stopped.');
+  preparedMetadata=saved;$('uri').value=saved.uri;$('hash').textContent=hash;
+  return saved;
+}
 function node(tag,text,className){const n=document.createElement(tag);n.textContent=text;if(className)n.className=className;return n;}
 async function checkRPC(){
   ready=false;buttons();
@@ -74,17 +97,17 @@ async function showToken(id,append=false){
   for(const [key,value]of fields)dl.append(node('dt',key),node('dd',value));card.append(dl);$('results').append(card);
 }
 $('connect').onclick=()=>guard(async()=>{if(!window.ethereum)throw Error('MetaMask is not installed. Install the extension to sign transactions.');await checkRPC();await refreshWallet(true);if(!correctNetwork){try{await window.ethereum.request({method:'wallet_switchEthereumChain',params:[{chainId:chainHex}]});}catch(e){if(e.code!==4902)throw e;await window.ethereum.request({method:'wallet_addEthereumChain',params:[{chainId:chainHex,chainName:'Ganache Local',rpcUrls:[deployment.rpcUrl],nativeCurrency:{name:'Ether',symbol:'ETH',decimals:18}}]});}await refreshWallet();}});
-$('download').onclick=()=>guard(async()=>{const text=metadata();$('hash').textContent=keccak256(toUtf8Bytes(text));const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='certificate.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('JSON created. Place this exact file in the metadata folder and update the URI.');});
+$('download').onclick=()=>guard(()=>metadataTask(async()=>{const text=metadata();const saved=await saveMetadata(text);const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=`certificate-${saved.hash.slice(2,14)}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);notice('JSON saved in the project and Metadata URI filled automatically. An optional copy was downloaded.');}));
 $('issueForm').onsubmit=e=>{e.preventDefault();guard(async()=>{
-  const student=getAddress($('student').value.trim()),uri=$('uri').value.trim(),expected=metadata();
-  const raw=await fetchText(uri);parseMetadata(raw);
-  // Accept original file bytes (including a trailing newline), but require identical form data.
-  if(JSON.stringify(parseMetadata(raw))!==expected)throw Error('The URI contents do not match the form. Check the values and the name, course, grade, date field order.');
-  const hash=keccak256(toUtf8Bytes(raw));$('hash').textContent=hash;
+  await metadataTask(async()=>{
+  const student=getAddress($('student').value.trim()),expected=metadata();
+  const {uri,hash}=await saveMetadata(expected);
   const receipt=await write(c=>c.issueCertificate(student,uri,hash));
   const event=receipt.logs.map(log=>{try{return read.interface.parseLog(log);}catch{return null;}}).find(x=>x?.name==='CertificateIssued');
   if(!event)throw Error('The receipt does not contain a CertificateIssued event.');$('tokenId').value=event.args.tokenId.toString();notice(`Issued certificate #${event.args.tokenId} · Tx ${receipt.hash}`);await showToken(event.args.tokenId);
+  });
 });};
+for(const id of ['name','course','grade','date'])$(id).addEventListener('input',()=>{preparedMetadata=null;$('uri').value='';$('hash').textContent='Saved automatically before issuance';});
 $('roleForm').onsubmit=e=>{e.preventDefault();guard(async()=>{const address=getAddress($('issuer').value.trim());await write(c=>c.grantRole(role,address));notice(`Granted issuer role to ${address}`);});};
 $('remove').onclick=()=>guard(async()=>{const address=getAddress($('issuer').value.trim());await write(c=>c.revokeRole(role,address));notice(`Removed issuer role from ${address}`);});
 $('revokeForm').onsubmit=e=>{e.preventDefault();guard(async()=>{const id=positive('revokeId');await write(c=>c.revokeCertificate(id));notice(`Revoked certificate #${id}`);await showToken(id);});};

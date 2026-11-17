@@ -41,7 +41,7 @@ module.exports=function render(content,output){
  y=doc.y+2;box(L,y,135,43,'Not issued');box(230,y,135,43,'Active');box(416,y,135,43,'Revoked');arrow(179,y+21,230,y+21);arrow(365,y+21,416,y+21);doc.font('Body').fontSize(7).fillColor('#193b2c').text('issue',181,y+5,{width:46,align:'center'}).text('revoke',368,y+5,{width:45,align:'center'});doc.y=y+53;small(content.stateCaption);
  y=doc.y+3;const xs=[90,238,386,530],labels=['Issuer / verifier','Web + JSON','MetaMask','Contract / RPC'];
  xs.forEach((x,i)=>{doc.font('Bold').fontSize(8.4).fillColor('#193b2c').text(labels[i],x-44,y,{width:88,align:'center'});doc.moveTo(x,y+24).lineTo(x,y+242).dash(3,{space:3}).strokeColor('#b8c7bf').stroke().undash();});
- const flows=[[0,1,'1. Input student, URI and metadata'],[1,1,'2. Fetch exact UTF-8; keccak256'],[1,2,'3. Request issueCertificate signature'],[2,3,'4. Signed transaction; enforce role; mint'],[3,1,'5. Receipt + CertificateIssued tokenId'],[0,1,'6. Look up token / select comparison JSON'],[1,3,'7. eth_call getCertificate / verify'],[3,1,'8. Return revoked + hash comparison']];
+ const flows=[[0,1,'1. Input student and metadata'],[1,1,'2. Save JSON; fill URI; fetch and hash'],[1,2,'3. Request issueCertificate signature'],[2,3,'4. Signed transaction; enforce role; mint'],[3,1,'5. Receipt + CertificateIssued tokenId'],[0,1,'6. Look up token / select comparison JSON'],[1,3,'7. eth_call getCertificate / verify'],[3,1,'8. Return revoked + hash comparison']];
  flows.forEach(([a,b,label],i)=>{const yy=y+42+i*25;if(a!==b)arrow(xs[a],yy,xs[b],yy);else{doc.circle(xs[a],yy,3).fill('#5a7869');}doc.font('Body').fontSize(8).fillColor('#142e24').text(label,L+8,yy-12,{width:W-16,align:'center'});});doc.y=y+253;small(content.sequenceCaption);
  page(content.sections[3]);text(content.securityIntro,9.5);
  table(content.securityHeaders,content.securityRows,[110,397],8.4);
@@ -51,7 +51,7 @@ module.exports=function render(content,output){
  table(content.testHeaders,content.testGroups,[347,60,100],8.6);
  const hardhat=fs.readFileSync('docs/test-hardhat.txt','utf8').match(/\d+ passing[^\r\n]*/)?.[0];
  const ganache=fs.readFileSync('docs/test-results.txt','utf8').match(/\d+ passing[^\r\n]*/)?.[0];
- small(`Hardhat: ${hardhat}  |  Ganache: ${ganache}  |  Browser: ${fs.readFileSync('docs/ui-results.txt','utf8').match(/1 passed[^\r\n]*/)?.[0]}`);
+ small(`Hardhat: ${hardhat}  |  Ganache: ${ganache}  |  Browser/storage: ${fs.readFileSync('docs/ui-results.txt','utf8').match(/\d+ passed[^\r\n]*/)?.[0]}`);
  const manifest=JSON.parse(fs.readFileSync('docs/evidence/manifest.json','utf8'));
  small(`Evidence: ${manifest.capturedAt} | EVM ${manifest.evmVersion} | chain ${manifest.chainId}\nContract: ${manifest.contract}`);
  figure('docs/evidence/test-log.png',content.testLogCaption,118);
